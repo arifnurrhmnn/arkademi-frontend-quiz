@@ -1,4 +1,4 @@
-import RankingPage from "@/components/pages/RankingPage";
+import RankingPage from "@/components/pages/Client/RankingPage";
 import React from "react";
 
 const Ranking = () => {

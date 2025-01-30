@@ -1,4 +1,4 @@
-import IntroductionsPage from "@/components/pages/IntroductionsPage/index";
+import IntroductionsPage from "@/components/pages/Client/IntroductionsPage";
 import React from "react";
 
 const Introductions = () => {

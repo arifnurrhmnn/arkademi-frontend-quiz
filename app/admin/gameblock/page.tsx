@@ -1,4 +1,4 @@
-import GameBlockPage from "@/components/pages/Client/GameBlockPage/index";
+import GameBlockPage from "@/components/pages/Admin/GameBlockPage";
 import React from "react";
 
 const GameBlock = () => {

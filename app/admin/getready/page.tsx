@@ -1,4 +1,4 @@
-import GetReadyPage from "@/components/pages/Client/GetReadyPage";
+import GetReadyPage from "@/components/pages/Admin/GetReadyPage";
 import React from "react";
 
 const GetReady = () => {
