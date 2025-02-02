@@ -22,38 +22,36 @@ export const createSession = async (quizId: string) => {
   return { sessionId: sessionRef.id, pin };
 };
 
-export const checkSession = async (pin: string) => {
+export const validatePin = async (pin: string) => {
   const sessionsQuery = query(
     collection(db, "sessionQuiz"),
     where("pin", "==", pin)
   );
   const snapshot = await getDocs(sessionsQuery);
+
   if (snapshot.empty) throw new Error("Invalid PIN");
+
+  const session = snapshot.docs[0].data();
+  if (session.status !== "waiting")
+    throw new Error("Session has already started");
+
   return snapshot.docs[0].id;
 };
 
 export const joinSession = async (pin: string, nickname: string) => {
-  const sessionsQuery = query(
-    collection(db, "sessionQuiz"),
-    where("pin", "==", pin)
-  );
-  const snapshot = await getDocs(sessionsQuery);
-
-  if (snapshot.empty) throw new Error("Invalid PIN");
-
-  const session = snapshot.docs[0];
-  if (session.data().status !== "waiting")
-    throw new Error("Session already started");
+  const sessionId = await validatePin(pin);
 
   const participantRef = await addDoc(
-    collection(db, `sessionQuiz/${session.id}/participants`),
+    collection(db, `sessionQuiz/${sessionId}/participants`),
     {
       nickname,
       joinedAt: serverTimestamp(),
+      score: 0,
+      answers: {},
     }
   );
 
-  return { sessionId: session.id, participantId: participantRef.id };
+  return { sessionId, participantId: participantRef.id };
 };
 
 const generateUniquePin = async () => {

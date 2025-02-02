@@ -10,17 +10,22 @@ const JoinPage = () => {
   const pin = searchParams.get("pin") as string;
   const [nickname, setNickname] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async () => {
+    if (!pin || typeof pin !== "string") return;
+
     setLoading(true);
+    setError("");
+
     try {
-      console.log("pin", pin, nickname);
       const { sessionId } = await joinSession(pin, nickname);
-      router.push(`/getready?id=${sessionId}`);
-    } catch (error) {
-      alert("Invalid PIN or error joining session");
+      router.push(`/getready/${sessionId}`);
+    } catch (err) {
+      setError("Failed to join session. Check PIN or try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

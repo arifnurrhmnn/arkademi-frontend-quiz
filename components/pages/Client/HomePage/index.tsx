@@ -1,7 +1,7 @@
 "use client";
 
 import FormStart from "@/components/moleculs/FormStart/index";
-import { checkSession } from "@/lib/firebase/action";
+import { validatePin } from "@/lib/firebase/action";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
@@ -14,7 +14,7 @@ const HomePage = () => {
     console.log("Submitted PIN:", pin);
     setLoading(true);
     try {
-      const sessionId = await checkSession(pin);
+      await validatePin(pin);
       router.push(`/join?pin=${pin}`);
     } catch (error) {
       alert("Invalid PIN or error joining session");
