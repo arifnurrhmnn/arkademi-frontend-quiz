@@ -2,67 +2,60 @@ import React, { JSX } from "react";
 import { BsTriangleFill } from "react-icons/bs";
 import { FaCircle, FaDiamond, FaSquare } from "react-icons/fa6";
 
-type VariantType = "a" | "b" | "c" | "d";
-type typeAnswerType = "default" | "text";
+type VariantType = `${string}`;
+type TypeAnswerType = "default" | "text";
 
 const AnswerBox = ({
   variant,
   typeAnswer = "default",
   textAnsware,
+  onClick,
+  correctAnswer,
 }: {
   variant: VariantType;
-  typeAnswer?: typeAnswerType;
+  typeAnswer?: TypeAnswerType;
   textAnsware?: string;
+  onClick?: (e: string) => void;
+  correctAnswer?: string; // Bisa string bebas atau salah satu dari "0"|"1"|"2"|"3"
 }) => {
-  // Mapping for background colors
+  // Mapping warna background
   const bgColors: Record<VariantType, string> = {
-    a: "bg-red-600 hover:bg-red-800",
-    b: "bg-blue-600 hover:bg-blue-800",
-    c: "bg-yellow-600 hover:bg-yellow-800",
-    d: "bg-green-600 hover:bg-green-800",
+    "0": "bg-red-600 hover:bg-red-800",
+    "1": "bg-blue-600 hover:bg-blue-800",
+    "2": "bg-yellow-600 hover:bg-yellow-800",
+    "3": "bg-green-600 hover:bg-green-800",
   };
-  // bg-green-600 hover:bg-green-800 opacity-50
 
-  // Mapping for icons
+  // Cek apakah correctAnswer adalah nilai yang valid ("0"|"1"|"2"|"3")
+  const isValidCorrectAnswer = ["0", "1", "2", "3"].includes(
+    correctAnswer || ""
+  );
+
+  // Jika correctAnswer valid, tambahkan opacity-50 ke jawaban yang salah
+  const isIncorrect = isValidCorrectAnswer && correctAnswer !== variant;
+  const bgColor = `${bgColors[variant]} ${isIncorrect ? "opacity-50" : ""}`;
+
+  // Mapping ikon
   const icons: Record<VariantType, JSX.Element> = {
-    a: (
-      <BsTriangleFill
-        className={`${
-          typeAnswer == "text" ? "text-3xl" : "text-8xl"
-        } text-white`}
-      />
-    ),
-    b: (
-      <FaDiamond
-        className={`${
-          typeAnswer == "text" ? "text-3xl" : "text-8xl"
-        } text-white`}
-      />
-    ),
-    c: (
-      <FaCircle
-        className={`${
-          typeAnswer == "text" ? "text-3xl" : "text-8xl"
-        } text-white`}
-      />
-    ),
-    d: (
-      <FaSquare
-        className={`${
-          typeAnswer == "text" ? "text-3xl" : "text-8xl"
-        } text-white`}
-      />
-    ),
+    "0": <BsTriangleFill className="text-white" />,
+    "1": <FaDiamond className="text-white" />,
+    "2": <FaCircle className="text-white" />,
+    "3": <FaSquare className="text-white" />,
   };
 
-  const className: Record<typeAnswerType, string> = {
+  const className: Record<TypeAnswerType, string> = {
     default: "w-full h-full grid place-items-center rounded-lg cursor-pointer",
     text: "w-full h-full flex flex-nowrap items-center gap-4 rounded-md cursor-pointer py-6 px-4",
   };
 
   return (
-    <div className={`${className[typeAnswer]} ${bgColors[variant]}`}>
-      {icons[variant]}
+    <div
+      className={`${className[typeAnswer]} ${bgColor}`}
+      onClick={() => onClick && onClick(variant)}
+    >
+      <div className={typeAnswer === "text" ? "text-3xl" : "text-8xl"}>
+        {icons[variant]}
+      </div>
       {typeAnswer === "text" && (
         <span className="font-semibold text-white text-lg">{textAnsware}</span>
       )}

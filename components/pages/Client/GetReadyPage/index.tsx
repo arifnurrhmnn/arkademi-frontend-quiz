@@ -1,33 +1,28 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 const GetReadyPage = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("id");
   const [countDown, setCountDown] = useState(5);
-  const [status, setStatus] = useState<"Ready..." | "Set..." | "Go!">(
-    "Ready..."
-  );
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountDown((prev) => {
-        if (prev > 0) {
-          return prev - 1;
-        } else {
-          clearInterval(timer); // Hentikan timer ketika countdown selesai
-          return 0;
-        }
-      });
-    }, 1000); // Interval 1 detik
+    if (countDown === 0) {
+      router.push(`/gameblock?id=${sessionId}`);
+      return;
+    }
 
-    return () => clearInterval(timer); // Membersihkan timer saat komponen dilepas
-  }, []);
+    const timer = setTimeout(() => {
+      setCountDown((prev) => prev - 1);
+    }, 1000);
 
-  useEffect(() => {
-    if (countDown > 3) setStatus("Ready...");
-    else if (countDown > 2) setStatus("Set...");
-    else if (countDown > 1) setStatus("Go!");
-  }, [countDown]);
+    return () => clearTimeout(timer);
+  }, [countDown, router, sessionId]);
+
+  const status = countDown > 3 ? "Ready..." : countDown > 2 ? "Set..." : "Go!";
 
   return (
     <div className="w-full h-screen flex flex-col items-center justify-center bg-black">

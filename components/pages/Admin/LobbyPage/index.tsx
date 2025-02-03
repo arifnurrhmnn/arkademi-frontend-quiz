@@ -1,17 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useQuizSubscription } from "@/hooks/useQuizSubscription";
 import { startQuiz } from "@/lib/firebase/action";
 import { useParticipants, useSession } from "@/lib/firebase/hooks";
 import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 
 const LobbyPage = () => {
-  // const quizId = "a7qOMVAJ2To2zcSOFA2L";
-  // const { quiz, loading, error } = useQuizSubscription(quizId);
-
-  // console.log("QUIZ", quiz, loading, error);
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("id");
@@ -22,8 +17,6 @@ const LobbyPage = () => {
     await startQuiz(sessionId as string);
     router.push(`/admin/getready?id=${sessionId}`);
   };
-
-  console.log("session", session, participants);
 
   return (
     <div className="w-full h-screen flex flex-col items-center justify-between gap-6 bg-black py-20">

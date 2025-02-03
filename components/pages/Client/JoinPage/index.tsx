@@ -20,7 +20,7 @@ const JoinPage = () => {
 
     try {
       const { sessionId } = await joinSession(pin, nickname);
-      router.push(`/getready/${sessionId}`);
+      router.push(`/instructions?id=${sessionId}`);
     } catch (err) {
       setError("Failed to join session. Check PIN or try again.");
     } finally {
