@@ -111,3 +111,119 @@ export const submitAnswer = async (
     },
   });
 };
+
+interface ParticipantAnswer {
+  [questionIndex: string]: {
+    answerIndex: number;
+    timestamp: string;
+  };
+}
+
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+}
+
+export const checkAnswerCorrectness = (
+  participantAnswers: ParticipantAnswer,
+  questionIndex: number,
+  quizQuestions: QuizQuestion[]
+) => {
+  const question = quizQuestions[questionIndex];
+
+  // Jika pertanyaan tidak ada
+  if (!question) {
+    return {
+      isCorrect: false,
+      participantAnswer: null,
+      correctAnswer: null,
+      error: "Question not found",
+    };
+  }
+
+  const participantAnswer = participantAnswers[questionIndex]?.answerIndex;
+
+  // Jika partisipan belum menjawab
+  if (typeof participantAnswer !== "number") {
+    return {
+      isCorrect: false,
+      participantAnswer: null,
+      correctAnswer: question.correctIndex,
+      status: "unanswered",
+    };
+  }
+
+  // Bandingkan jawaban dengan kunci benar
+  const isCorrect = participantAnswer === question.correctIndex;
+
+  return {
+    isCorrect,
+    participantAnswer,
+    correctAnswer: question.correctIndex,
+    status: isCorrect ? "correct" : "incorrect",
+  };
+};
+
+export const getParticipantResults = (
+  participantAnswers: Record<string, any>,
+  quizQuestions: any[]
+) => {
+  return quizQuestions.map((question, index) => {
+    const participantAnswer = participantAnswers[index]?.answerIndex;
+    const isCorrect = participantAnswer === question.correctIndex;
+
+    return {
+      question: question.question,
+      options: question.options,
+      participantAnswer,
+      correctAnswer: question.correctIndex,
+      isCorrect,
+      status:
+        participantAnswer === undefined
+          ? "unanswered"
+          : isCorrect
+          ? "correct"
+          : "incorrect",
+    };
+  });
+};
+
+export const calculateTotalScore = (results: any[]) => {
+  return results.filter((result) => result.isCorrect).length;
+};
+
+interface QuestionResult {
+  isCorrect: boolean;
+  participantAnswer: number | null;
+  correctAnswer: number;
+  score: number; // 0 atau 1
+}
+
+export const getSingleQuestionResult = (
+  participantAnswers: Record<string, any>, // Jawaban dari Firestore
+  targetQuestionIndex: number,
+  quizQuestions: any[]
+): QuestionResult => {
+  const question = quizQuestions[targetQuestionIndex];
+
+  if (!question) {
+    return {
+      isCorrect: false,
+      participantAnswer: null,
+      correctAnswer: -1,
+      score: 0,
+    };
+  }
+
+  const participantAnswer =
+    participantAnswers[targetQuestionIndex]?.answerIndex;
+  const isCorrect = participantAnswer === question.correctIndex;
+
+  return {
+    isCorrect,
+    participantAnswer: participantAnswer ?? null,
+    correctAnswer: question.correctIndex,
+    score: isCorrect ? 1 : 0,
+  };
+};
