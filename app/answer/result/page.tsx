@@ -2,7 +2,7 @@ import AnswerResultPage from "@/components/pages/Client/AnswerPage/AnswerResultP
 import React from "react";
 
 const AnswerResult = () => {
-  return <AnswerResultPage resultStatus="incorrect" />;
+  return <AnswerResultPage />;
 };
 
 export default AnswerResult;

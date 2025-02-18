@@ -3,7 +3,7 @@ import GroubAnswerBox from "@/components/organisms/GroubAnswerBox/index";
 import PageTemplate from "@/components/templates/PageTemplate/index";
 import { useAnswerHandler, useCurrentQuestion } from "@/lib/firebase/hooks";
 import { useRouter, useSearchParams } from "next/navigation";
-import React from "react";
+import React, { useEffect } from "react";
 
 const GameBlockPage = () => {
   const router = useRouter();
@@ -11,7 +11,7 @@ const GameBlockPage = () => {
   const sessionId = searchParams.get("id") as string;
   const participantId = localStorage.getItem("participantId") || "";
 
-  const { currentQuestion, currentQuestionIndex } =
+  const { currentQuestion, currentQuestionIndex, currentQuestionStatus } =
     useCurrentQuestion(sessionId);
 
   const { handleAnswer, isSubmitting, selectedAnswer, error } =
@@ -25,6 +25,12 @@ const GameBlockPage = () => {
     );
     router.push(`/answer/sent?id=${sessionId}`);
   };
+
+  useEffect(() => {
+    if (currentQuestionStatus === "timeout") {
+      handleSubmitAnswer("-1");
+    }
+  }, [currentQuestionStatus]);
 
   console.log("submitted", isSubmitting, selectedAnswer, error);
   return (

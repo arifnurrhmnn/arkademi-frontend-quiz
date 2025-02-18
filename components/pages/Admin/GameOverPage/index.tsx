@@ -1,7 +1,16 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
+import { useParticipants } from "@/lib/firebase/hooks";
+import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 
 const GameOverPage = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("id");
+  const { participants } = useParticipants(sessionId as string);
+
   return (
     <div className="w-full h-screen flex flex-col items-center bg-black">
       <div className="w-full min-h-[76px] bg-white bg-opacity-10 flex justify-center items-center px-8 py-2">
@@ -12,26 +21,20 @@ const GameOverPage = () => {
           Top 5
         </h3>
         <div className="w-full h-auto flex flex-col gap-6">
-          <div className="bg-white flex justify-between px-6 py-4 rounded-sm font-bold text-black text-xl">
-            <p>Jack Berwin</p>
-            <p>3000</p>
-          </div>
-          <div className="bg-white flex justify-between px-6 py-4 rounded-sm font-bold text-black text-xl">
-            <p>Fauzan</p>
-            <p>2890</p>
-          </div>
-          <div className="bg-white flex justify-between px-6 py-4 rounded-sm font-bold text-black text-xl">
-            <p>Naufal</p>
-            <p>2678</p>
-          </div>
-          <div className="bg-white flex justify-between px-6 py-4 rounded-sm font-bold text-black text-xl">
-            <p>Fandy</p>
-            <p>2114</p>
-          </div>
+          {participants
+            ?.slice()
+            .sort((a: any, b: any) => b.score - a.score)
+            .map((participant: any) => (
+              <div className="bg-white flex justify-between px-6 py-4 rounded-sm font-bold text-black text-xl">
+                <p>{participant?.nickname}</p>
+                <p>{Math.round(participant?.score)}</p>
+              </div>
+            ))}
         </div>
         <Button
           variant="secondary"
           className="w-fit font-bold text-black px-6 rounded-sm mt-8"
+          onClick={() => router.push(`/admin`)}
         >
           Exit
         </Button>

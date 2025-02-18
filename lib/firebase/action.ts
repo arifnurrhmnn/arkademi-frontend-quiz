@@ -37,6 +37,12 @@ export const createSession = async (quizId: string) => {
   return { sessionId: sessionRef.id, pin };
 };
 
+export const endSession = async (sessionId: string) => {
+  await updateDoc(doc(db, "sessionQuiz", sessionId), {
+    status: "ended",
+  });
+};
+
 // JOIN SESSION
 export const validatePin = async (pin: string) => {
   const sessionsQuery = query(
@@ -76,7 +82,11 @@ export const startQuiz = async (sessionId: string) => {
   await updateDoc(doc(db, "sessionQuiz", sessionId), {
     status: "started",
     currentQuestion: 0,
-    startTime: serverTimestamp(),
+    currentQuestionStatus: "active",
+    currentQuestionStartTime: serverTimestamp(),
+    currentQuestionEndTime: {
+      _seconds: Math.floor(Date.now() / 1000) + getQuestionTimeout(),
+    },
   });
 };
 
@@ -85,10 +95,15 @@ export const nextQuestion = async (sessionId: string) => {
   const sessionRef = doc(db, "sessionQuiz", sessionId);
   const sessionDoc = await getDoc(sessionRef);
   const currentQuestion = sessionDoc.data()?.currentQuestion || 0;
+  const timeout = getQuestionTimeout();
 
   await updateDoc(sessionRef, {
     currentQuestion: currentQuestion + 1,
-    startTime: serverTimestamp(),
+    currentQuestionStatus: "active",
+    currentQuestionStartTime: serverTimestamp(),
+    currentQuestionEndTime: {
+      _seconds: Math.floor(Date.now() / 1000) + timeout,
+    },
   });
 };
 
@@ -99,105 +114,142 @@ export const submitAnswer = async (
   questionIndex: number,
   answerIndex: number
 ) => {
+  const sessionRef = doc(db, "sessionQuiz", sessionId);
   const participantRef = doc(
     db,
     `sessionQuiz/${sessionId}/participants/${participantId}`
   );
 
-  await updateDoc(participantRef, {
-    [`answers.${questionIndex}`]: {
-      answerIndex,
-      timestamp: serverTimestamp(),
-    },
-  });
-};
+  try {
+    // Get session data untuk mendapatkan quizId
+    const sessionDoc = await getDoc(sessionRef);
+    const sessionData = sessionDoc.data();
 
-interface ParticipantAnswer {
-  [questionIndex: string]: {
-    answerIndex: number;
-    timestamp: string;
-  };
-}
+    if (!sessionData) {
+      throw new Error("Session tidak ditemukan");
+    }
 
-interface QuizQuestion {
-  question: string;
-  options: string[];
-  correctIndex: number;
-}
+    // Get quiz data untuk memeriksa jawaban benar
+    const quizRef = doc(db, "quizzes", sessionData.quizId);
+    const quizDoc = await getDoc(quizRef);
+    const quizData = quizDoc.data();
 
-export const checkAnswerCorrectness = (
-  participantAnswers: ParticipantAnswer,
-  questionIndex: number,
-  quizQuestions: QuizQuestion[]
-) => {
-  const question = quizQuestions[questionIndex];
+    if (!quizData) {
+      throw new Error("Quiz tidak ditemukan");
+    }
 
-  // Jika pertanyaan tidak ada
-  if (!question) {
-    return {
-      isCorrect: false,
-      participantAnswer: null,
-      correctAnswer: null,
-      error: "Question not found",
-    };
+    // Dapatkan data partisipan terbaru
+    const participantDoc = await getDoc(participantRef);
+    const participantData = participantDoc.data();
+
+    // Hitung skor
+    const totalQuestions = quizData.questions.length;
+    const currentScore = participantData?.score || 0;
+    const correctAnswer = quizData.questions[questionIndex]?.correctIndex;
+    const scoreIncrement =
+      answerIndex == correctAnswer ? 100 / totalQuestions : 0;
+
+    // Update jawaban dan skor
+    await updateDoc(participantRef, {
+      [`answers.${questionIndex}`]: {
+        answerIndex,
+        timestamp: serverTimestamp(),
+      },
+      score: currentScore + scoreIncrement,
+    });
+  } catch (error) {
+    console.error("Error submit jawaban:", error);
+    throw error;
   }
-
-  const participantAnswer = participantAnswers[questionIndex]?.answerIndex;
-
-  // Jika partisipan belum menjawab
-  if (typeof participantAnswer !== "number") {
-    return {
-      isCorrect: false,
-      participantAnswer: null,
-      correctAnswer: question.correctIndex,
-      status: "unanswered",
-    };
-  }
-
-  // Bandingkan jawaban dengan kunci benar
-  const isCorrect = participantAnswer === question.correctIndex;
-
-  return {
-    isCorrect,
-    participantAnswer,
-    correctAnswer: question.correctIndex,
-    status: isCorrect ? "correct" : "incorrect",
-  };
 };
 
-export const getParticipantResults = (
-  participantAnswers: Record<string, any>,
-  quizQuestions: any[]
-) => {
-  return quizQuestions.map((question, index) => {
-    const participantAnswer = participantAnswers[index]?.answerIndex;
-    const isCorrect = participantAnswer === question.correctIndex;
+// interface ParticipantAnswer {
+//   [questionIndex: string]: {
+//     answerIndex: number;
+//     timestamp: string;
+//   };
+// }
 
-    return {
-      question: question.question,
-      options: question.options,
-      participantAnswer,
-      correctAnswer: question.correctIndex,
-      isCorrect,
-      status:
-        participantAnswer === undefined
-          ? "unanswered"
-          : isCorrect
-          ? "correct"
-          : "incorrect",
-    };
-  });
-};
+// interface QuizQuestion {
+//   question: string;
+//   options: string[];
+//   correctIndex: number;
+// }
 
-export const calculateTotalScore = (results: any[]) => {
-  return results.filter((result) => result.isCorrect).length;
-};
+// export const checkAnswerCorrectness = (
+//   participantAnswers: ParticipantAnswer,
+//   questionIndex: number,
+//   quizQuestions: QuizQuestion[]
+// ) => {
+//   const question = quizQuestions[questionIndex];
+
+//   // Jika pertanyaan tidak ada
+//   if (!question) {
+//     return {
+//       isCorrect: false,
+//       participantAnswer: null,
+//       correctAnswer: null,
+//       error: "Question not found",
+//     };
+//   }
+
+//   const participantAnswer = participantAnswers[questionIndex]?.answerIndex;
+
+//   // Jika partisipan belum menjawab
+//   if (typeof participantAnswer !== "number") {
+//     return {
+//       isCorrect: false,
+//       participantAnswer: null,
+//       correctAnswer: question.correctIndex,
+//       status: "unanswered",
+//     };
+//   }
+
+//   // Bandingkan jawaban dengan kunci benar
+//   const isCorrect = participantAnswer === question.correctIndex;
+
+//   return {
+//     isCorrect,
+//     participantAnswer,
+//     correctAnswer: question.correctIndex,
+//     status: isCorrect ? "correct" : "incorrect",
+//   };
+// };
+
+// export const getParticipantResults = (
+//   participantAnswers: Record<string, any>,
+//   quizQuestions: any[]
+// ) => {
+//   return quizQuestions.map((question, index) => {
+//     const participantAnswer = participantAnswers[index]?.answerIndex;
+//     const isCorrect = participantAnswer === question.correctIndex;
+
+//     return {
+//       question: question.question,
+//       options: question.options,
+//       participantAnswer,
+//       correctAnswer: question.correctIndex,
+//       isCorrect,
+//       status:
+//         participantAnswer === undefined
+//           ? "unanswered"
+//           : isCorrect
+//           ? "correct"
+//           : "incorrect",
+//     };
+//   });
+// };
+
+// export const calculateTotalScore = (results: any[]) => {
+//   return results.filter((result) => result.isCorrect).length;
+// };
 
 interface QuestionResult {
   isCorrect: boolean;
+  status: "correct" | "incorrect" | "timesup";
   participantAnswer: number | null;
   correctAnswer: number;
-  score: number; // 0 atau 1
+  score: number;
 }
 
 export const getSingleQuestionResult = (
@@ -207,23 +259,29 @@ export const getSingleQuestionResult = (
 ): QuestionResult => {
   const question = quizQuestions[targetQuestionIndex];
 
-  if (!question) {
-    return {
-      isCorrect: false,
-      participantAnswer: null,
-      correctAnswer: -1,
-      score: 0,
-    };
-  }
-
   const participantAnswer =
     participantAnswers[targetQuestionIndex]?.answerIndex;
-  const isCorrect = participantAnswer === question.correctIndex;
+  const isCorrect = participantAnswer == question.correctIndex;
+  const status =
+    participantAnswer >= 0 ? (isCorrect ? "correct" : "incorrect") : "timesup";
+  const score = isCorrect ? 100 / quizQuestions.length : 0;
 
   return {
     isCorrect,
+    status,
     participantAnswer: participantAnswer ?? null,
     correctAnswer: question.correctIndex,
-    score: isCorrect ? 1 : 0,
+    score,
   };
+};
+
+const getQuestionTimeout = (quizId?: string, questionIndex?: number) => {
+  return 20;
+};
+
+export const handleQuestionTimeout = async (sessionId: string) => {
+  const sessionRef = doc(db, "sessionQuiz", sessionId);
+  await updateDoc(sessionRef, {
+    currentQuestionStatus: "timeout",
+  });
 };
