@@ -1,12 +1,12 @@
 "use client";
 
-import GroubAnswerBox from "@/components/organisms/GroubAnswerBox";
+import CustomInput from "@/components/atoms/CustomInput";
+import GroubAnswerBoxCreator from "@/components/organisms/GroubAnswerBox/GrubAnswerBoxCreator";
 import AdminTemplate from "@/components/templates/AdminTemplate";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useQuiz } from "@/lib/firebase/hooks";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export interface Question {
   options: string[];
@@ -25,14 +25,29 @@ interface Quiz {
 
 const CreatorPage = () => {
   const router = useRouter();
+
   const searchParams = useSearchParams();
   const quizId = searchParams.get("id") as string;
   const { quiz }: { quiz: Quiz } = useQuiz(quizId);
-
   const [questionIndex, setQuestionIndex] = useState<number>(0);
-  const currectQuestion = quiz?.questions[questionIndex];
+  const [question, setQuestion] = useState("Input Question");
+  const [options, setOptions] = useState<string[]>([
+    "Add Answer 1",
+    "Add Answer 2",
+    "Add Answer 3",
+    "Add Answer 4",
+  ]);
 
-  console.log("quiz", quiz);
+  useEffect(() => {
+    const currectQuestion = quiz?.questions[questionIndex];
+
+    if (currectQuestion) {
+      setQuestion(currectQuestion.question);
+      setOptions(currectQuestion.options);
+    }
+  }, [quiz]);
+
+  console.log("quiz", options, question);
 
   return (
     <AdminTemplate className="bg-black">
@@ -52,18 +67,19 @@ const CreatorPage = () => {
           </ul>
           <Button className="font-bold w-fit">Add</Button>
         </aside>
-        <main className="w-full flex flex-col justify-between">
-          <div className="flex flex-col justify-center items-center p-8">
-            <Textarea
-              placeholder="Input Question."
-              className="!flex !items-center !font-bold !text-white !text-3xl !text-center !border-dashed"
-              //   value={}
+        <main className="w-[85%] flex flex-col justify-between">
+          <div className="w-full h-full flex flex-col justify-center items-center p-8">
+            <CustomInput
+              placeholder="Input Question"
+              textContent={question}
+              setTextContent={setQuestion}
             />
           </div>
 
-          <GroubAnswerBox
+          <GroubAnswerBoxCreator
             typeAnswer="text"
-            dataAnswer={currectQuestion?.options}
+            dataAnswer={options}
+            setOptions={setOptions}
           />
         </main>
       </div>
